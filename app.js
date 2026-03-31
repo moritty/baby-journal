@@ -751,6 +751,13 @@ function init() {
   // Sheetsから取得
   if (CONFIG.scriptUrl) syncFetch(state.date);
 
+  // アプリがフォアグラウンドに戻ったとき自動同期
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && CONFIG.scriptUrl) {
+      syncFetch(state.date);
+    }
+  });
+
   // PWA Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
