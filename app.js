@@ -114,7 +114,8 @@ async function syncFetch(dateStr) {
   try {
     const res = await fetch(`${CONFIG.scriptUrl}?date=${dateStr}`);
     const data = await res.json();
-    if (Array.isArray(data.records)) {
+    // Sheetsにデータがある場合のみローカルを上書き（空データで消えるのを防ぐ）
+    if (Array.isArray(data.records) && data.records.length > 0) {
       state.records[dateStr] = data.records;
       saveCache();
       renderTimeline();
@@ -134,15 +135,16 @@ async function syncSave(record) {
   }
   setSyncing(true);
   try {
-    const res = await fetch(CONFIG.scriptUrl, {
+    // no-cors: Apps ScriptへのPOSTはCORSプリフライトを回避
+    await fetch(CONFIG.scriptUrl, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(record),
     });
-    const data = await res.json();
-    if (data.success) showToast('✓ きろくしました');
+    showToast('✓ きろくしました');
   } catch(e) {
-    showToast('💾 オフライン保存');
+    showToast('💾 ローカルに保存');
   } finally {
     setSyncing(false);
   }
