@@ -278,11 +278,11 @@ function renderTimeline() {
       }
       if (r.note) txt += r.value ? ` (${r.note})` : ` ${r.note}`;
       return `
-        <div class="detail-row">
+        <div class="detail-row" onclick="openEdit('${escHtml(r.id)}')">
           <span class="detail-time">:${min}</span>
           <div class="detail-icon" style="background:${c.bg}">${c.emoji}</div>
           <span class="detail-text">${escHtml(txt)}</span>
-          <button class="detail-delete" onclick="confirmDelete('${escHtml(r.id)}')">✕</button>
+          <span class="detail-arrow">›</span>
         </div>`;
     }).join('');
 
@@ -647,6 +647,119 @@ function deleteHitokoto(id) {
   if (confirm('このコメントを削除しますか？')) {
     removeRecord(id);
     closeHitokoto();
+  }
+}
+
+// ===== 編集 =====
+let editingRecordId = null;
+
+function openEdit(recordId) {
+  const record = (state.records[state.date] || []).find(r => r.id === recordId);
+  if (!record) return;
+  editingRecordId = recordId;
+  document.getElementById('inputModal').classList.remove('hidden');
+  renderEditModal(record);
+}
+
+function renderEditModal(record) {
+  const c = CAT[record.category] || CATS[0];
+  const [hStr, mStr] = record.time.split(':');
+  const defH = parseInt(hStr, 10) || 0;
+  const defM = Math.floor((parseInt(mStr, 10) || 0) / 5);
+
+  // 値入力エリア
+  let valueSection = '';
+  let editItems = null, editDefIdx = 0;
+
+  if (WITH_ML.has(record.category)) {
+    editItems = Array.from({length:30}, (_,i) => { const ml=(i+1)*10; return {label:`${ml}ml`, val:`${ml}`}; });
+    editDefIdx = Math.max(0, Math.round(parseInt(record.value||'80')/10) - 1);
+    valueSection = `<div class="picker-container" style="margin-top:8px">
+      <div class="picker-col">
+        <div class="picker-col-label">ml</div>
+        <div class="picker" id="pEditValue" style="width:130px"></div>
+      </div></div>`;
+  } else if (record.category === 'weight') {
+    editItems = Array.from({length:80}, (_,i) => { const g=1000+i*50; return {label:`${g}g`, val:`${g}`}; });
+    editDefIdx = Math.max(0, Math.round((parseInt(record.value||'2000')-1000)/50));
+    valueSection = `<div class="picker-container" style="margin-top:8px">
+      <div class="picker-col">
+        <div class="picker-col-label">g</div>
+        <div class="picker" id="pEditValue" style="width:130px"></div>
+      </div></div>`;
+  } else if (record.category === 'temp') {
+    editItems = Array.from({length:60}, (_,i) => { const v=(350+i)/10; return {label:`${v.toFixed(1)}℃`, val:`${v.toFixed(1)}`}; });
+    editDefIdx = Math.max(0, Math.round((parseFloat(record.value||'37.0')*10)-350));
+    valueSection = `<div class="picker-container" style="margin-top:8px">
+      <div class="picker-col">
+        <div class="picker-col-label">℃</div>
+        <div class="picker" id="pEditValue" style="width:130px"></div>
+      </div></div>`;
+  } else if (record.note !== undefined && record.note !== '') {
+    valueSection = `<textarea class="note-textarea" id="editNoteInput">${escHtml(record.note)}</textarea>`;
+  }
+
+  document.getElementById('modalSheet').innerHTML = `
+    <div class="modal-head">
+      <div class="modal-big-icon" style="background:${c.bg}">${c.emoji}</div>
+      <span class="modal-title-text" style="color:${c.color}">${c.label}</span>
+      <span class="modal-badge" style="background:${c.bg};color:${c.color}">編集</span>
+    </div>
+    <div class="picker-container">
+      <div class="picker-col">
+        <div class="picker-col-label">時</div>
+        <div class="picker" id="pEditHour"></div>
+      </div>
+      <div class="picker-colon">:</div>
+      <div class="picker-col">
+        <div class="picker-col-label">分</div>
+        <div class="picker" id="pEditMin"></div>
+      </div>
+    </div>
+    ${valueSection}
+    <button class="btn-primary" onclick="submitEdit()">保存する</button>
+    <button class="btn-cancel btn-delete" onclick="deleteFromEdit()">このきろくを削除</button>
+    <button class="btn-cancel" onclick="closeModal()">キャンセル</button>`;
+
+  const hours = Array.from({length:24}, (_,i) => ({label:`${i}時`, val:`${i}`}));
+  const mins  = Array.from({length:12}, (_,i) => ({label:`${pad(i*5)}分`, val:`${i*5}`}));
+  setupPicker('pEditHour', hours, defH);
+  setupPicker('pEditMin',  mins,  defM);
+  if (editItems) setupPicker('pEditValue', editItems, editDefIdx);
+}
+
+function submitEdit() {
+  const dk = state.date;
+  const record = (state.records[dk] || []).find(r => r.id === editingRecordId);
+  if (!record) { closeModal(); return; }
+
+  const h = pickVal('pEditHour'), m = pickVal('pEditMin');
+  record.time = `${pad(parseInt(h))}:${pad(parseInt(m))}`;
+
+  if (WITH_ML.has(record.category) || record.category === 'weight' || record.category === 'temp') {
+    record.value = pickVal('pEditValue');
+  } else {
+    const noteEl = document.getElementById('editNoteInput');
+    if (noteEl) record.note = noteEl.value.trim();
+  }
+
+  state.records[dk].sort((a, b) => a.time.localeCompare(b.time));
+  saveCache();
+  renderTimeline();
+  renderSummary();
+  syncDelete(record.id);
+  syncSave(record);
+
+  closeModal();
+  editingRecordId = null;
+  showToast('✓ 更新しました');
+}
+
+function deleteFromEdit() {
+  if (confirm('この記録を削除しますか？')) {
+    removeRecord(editingRecordId);
+    closeModal();
+    editingRecordId = null;
   }
 }
 
