@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Kotoneの育児記録</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#E8758A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="育児記録">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="header-title">おせわきろく</div>
+      <button class="settings-btn" onclick="openSettings()">⚙</button>
+    </header>
+
+    <!-- 赤ちゃん情報バー -->
+    <div class="baby-bar">
+      <span class="baby-name-age" id="babyNameAge">Kotone 0才1ヶ月</span>
+    </div>
+
+    <!-- 日付ナビゲーション -->
+    <div class="date-nav">
+      <button class="nav-btn" onclick="changeDate(-1)">＜</button>
+      <div class="date-info" onclick="openCalendar()">
+        <span id="currentDateLabel">2026年3月31日</span>
+        <span id="daysOldLabel" class="days-old">生後50日目</span>
+      </div>
+      <button class="cal-btn" onclick="openCalendar()">📅</button>
+      <button class="nav-btn" onclick="changeDate(1)">＞</button>
+    </div>
+
+    <!-- 日次サマリー -->
+    <div class="daily-summary" id="dailySummary"></div>
+
+    <!-- タイムライン -->
+    <div class="timeline" id="timeline"></div>
+
+    <!-- ひとことFABボタン -->
+    <button class="hitokoto-fab" onclick="openHitokoto()">
+      <span class="hitokoto-fab-icon">✏️</span>
+      <span class="hitokoto-fab-label">ひとこと</span>
+    </button>
+
+    <!-- ボトムバー -->
+    <div class="bottom-bar">
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+
+  </div>
+
+  <!-- 入力モーダル -->
+  <div id="inputModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-sheet" id="modalSheet"></div>
+  </div>
+
+  <!-- ひとことモーダル -->
+  <div id="hitokotoModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeHitokoto()"></div>
+    <div class="modal-sheet" id="hitokotoSheet"></div>
+  </div>
+
+  <!-- 設定モーダル -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeSettings()"></div>
+    <div class="modal-sheet">
+      <div class="settings-header">
+        <span class="modal-title-text">設定</span>
+      </div>
+      <div class="settings-group">
+        <label class="settings-label">Google Apps Script URL</label>
+        <input type="url" id="scriptUrlInput" class="settings-input" placeholder="https://script.google.com/macros/s/..." />
+        <p class="settings-hint">スプレッドシートに保存するためのURLです</p>
+      </div>
+      <button class="btn-primary" onclick="saveSettings()">保存する</button>
+      <button class="btn-cancel" onclick="closeSettings()">閉じる</button>
+    </div>
+  </div>
+
+  <!-- 隠しdate input (カレンダー用) -->
+  <input type="date" id="hiddenDateInput" style="position:fixed;opacity:0;pointer-events:none;top:50%">
+
+  <!-- トースト通知 -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
