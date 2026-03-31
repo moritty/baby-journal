@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baby-journal-v1';
+const CACHE_NAME = 'baby-journal-v4';
 const ASSETS = [
   './index.html',
   './style.css',
@@ -29,7 +29,12 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request).catch(() => new Response('{"error":"offline"}', {headers: {'Content-Type': 'application/json'}})));
     return;
   }
+  // Network first: 常に最新ファイルを取得、失敗時はキャッシュ
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
