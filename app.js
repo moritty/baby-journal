@@ -1023,6 +1023,16 @@ function renderGraph() {
   drawGrowthGraph(wPoints, hPoints);
 }
 
+// 年齢タブごとの固定軸範囲（参考画像に合わせた値）
+const AXIS_BY_AGE = {
+  1:  { wMax: 12,  hMin: 30, hMax: 85,  wStep: 2,  hStep: 5  },
+  2:  { wMax: 20,  hMin: 40, hMax: 100, wStep: 2,  hStep: 5  },
+  4:  { wMax: 25,  hMin: 35, hMax: 115, wStep: 5,  hStep: 10 },
+  8:  { wMax: 60,  hMin: 50, hMax: 140, wStep: 10, hStep: 10 },
+  12: { wMax: 80,  hMin: 30, hMax: 175, wStep: 10, hStep: 10 },
+  18: { wMax: 125, hMin: 60, hMax: 200, wStep: 20, hStep: 10 },
+};
+
 function drawGrowthGraph(wPoints, hPoints) {
   const canvas = document.getElementById('growthCanvas');
   if (!canvas) return;
@@ -1031,16 +1041,15 @@ function drawGrowthGraph(wPoints, hPoints) {
   const maxMonths = maxAgeYr * 12;
   const isYearAxis = maxAgeYr >= 8;
   const refData = GROWTH_REF.filter(d => d[0] <= maxMonths);
+  const ax = AXIS_BY_AGE[maxAgeYr];
 
   const W = canvas.width, H = canvas.height;
   const PL = 44, PR = 42, PT = 18, PB = 34;
   const PW = W - PL - PR, PH = H - PT - PB;
 
-  // Y-axis範囲
-  const wMin = 0;
-  const wMax = Math.ceil(Math.max(...refData.map(d => d[2])) / 5) * 5 + 2;
-  const hMin = Math.floor(Math.min(...refData.map(d => d[3])) / 10) * 10;
-  const hMax = Math.ceil(Math.max(...refData.map(d => d[4])) / 10) * 10 + 5;
+  // 固定軸範囲
+  const wMin = 0, wMax = ax.wMax;
+  const hMin = ax.hMin, hMax = ax.hMax;
 
   const xOf  = m  => PL + (m  / maxMonths) * PW;
   const yOfW = kg => PT + PH * (1 - (kg - wMin) / (wMax - wMin));
@@ -1054,7 +1063,7 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.fillRect(0, 0, W, H);
 
   // グリッド線
-  const wStep = wMax <= 15 ? 2 : wMax <= 35 ? 5 : 10;
+  const wStep = ax.wStep;
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 0.8;
   ctx.setLineDash([3, 4]);
@@ -1081,7 +1090,7 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.setLineDash([]);
 
   // 右軸ラベル（身長）
-  const hStep = (hMax - hMin) <= 60 ? 5 : 10;
+  const hStep = ax.hStep;
   for (let h = Math.ceil(hMin/hStep)*hStep; h <= hMax; h += hStep) {
     const y = yOfH(h);
     if (y < PT - 1 || y > PT + PH + 1) continue;
