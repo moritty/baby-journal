@@ -1044,16 +1044,19 @@ function drawGrowthGraph(wPoints, hPoints) {
   const ax = AXIS_BY_AGE[maxAgeYr];
 
   const W = canvas.width, H = canvas.height;
-  const PL = 44, PR = 42, PT = 18, PB = 34;
+  const PL = 44, PR = 44, PT = 20, PB = 36;
   const PW = W - PL - PR, PH = H - PT - PB;
 
-  // 固定軸範囲
   const wMin = 0, wMax = ax.wMax;
   const hMin = ax.hMin, hMax = ax.hMax;
 
-  const xOf  = m  => PL + (m  / maxMonths) * PW;
-  const yOfW = kg => PT + PH * (1 - (kg - wMin) / (wMax - wMin));
-  const yOfH = cm => PT + PH * (1 - (cm - hMin) / (hMax - hMin));
+  // 身長は上60%、体重は下60%のゾーンにマッピング（中央20%は重複可）
+  const TOP_ZONE = 0.6;   // 身長ゾーン: y[PT .. PT+PH*0.6]
+  const BOT_START = 0.4;  // 体重ゾーン: y[PT+PH*0.4 .. PT+PH]
+
+  const xOf  = m  => PL + (m / maxMonths) * PW;
+  const yOfH = cm => PT + PH * TOP_ZONE * (1 - (cm - hMin) / (hMax - hMin));
+  const yOfW = kg => PT + PH * BOT_START + PH * (1 - BOT_START) * (1 - kg / wMax);
 
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, W, H);
@@ -1062,15 +1065,21 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.fillStyle = '#141428';
   ctx.fillRect(0, 0, W, H);
 
-  // グリッド線
-  const wStep = ax.wStep;
+  // 垂直グリッド線
+  const xStepM = isYearAxis ? (maxAgeYr <= 12 ? 12 : 24) : (maxAgeYr === 1 ? 1 : maxAgeYr === 2 ? 2 : 4);
   ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 0.8;
   ctx.setLineDash([3, 4]);
+  for (let m = 0; m <= maxMonths; m += xStepM) {
+    const x = xOf(m);
+    ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, PT + PH); ctx.stroke();
+  }
 
+  // 体重の水平グリッド＋左軸ラベル（下ゾーン）
+  const wStep = ax.wStep;
   for (let w = 0; w <= wMax; w += wStep) {
     const y = yOfW(w);
-    if (y < PT - 1 || y > PT + PH + 1) continue;
+    if (y < PT || y > PT + PH + 1) continue;
     ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle = '#81C784'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
@@ -1078,24 +1087,23 @@ function drawGrowthGraph(wPoints, hPoints) {
     ctx.setLineDash([3, 4]);
   }
 
-  const xStepM = isYearAxis ? (maxAgeYr <= 12 ? 12 : 24) : (maxAgeYr === 1 ? 1 : maxAgeYr === 2 ? 2 : 4);
-  for (let m = 0; m <= maxMonths; m += xStepM) {
-    const x = xOf(m);
-    ctx.beginPath(); ctx.moveTo(x, PT); ctx.lineTo(x, PT + PH); ctx.stroke();
+  // 身長の水平グリッド＋右軸ラベル（上ゾーン）
+  const hStep = ax.hStep;
+  for (let h = Math.ceil(hMin / hStep) * hStep; h <= hMax; h += hStep) {
+    const y = yOfH(h);
+    if (y < PT || y > PT + PH) continue;
+    ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(isYearAxis ? `${m/12}` : `${m}`, x, PT + PH + 14);
+    ctx.fillStyle = '#7EC8D4'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText(h, W - PR + 3, y + 3);
     ctx.setLineDash([3, 4]);
   }
   ctx.setLineDash([]);
 
-  // 右軸ラベル（身長）
-  const hStep = ax.hStep;
-  for (let h = Math.ceil(hMin/hStep)*hStep; h <= hMax; h += hStep) {
-    const y = yOfH(h);
-    if (y < PT - 1 || y > PT + PH + 1) continue;
-    ctx.fillStyle = '#7EC8D4'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
-    ctx.fillText(h, W - PR + 3, y + 3);
+  // X軸ラベル
+  for (let m = 0; m <= maxMonths; m += xStepM) {
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(isYearAxis ? `${m/12}` : `${m}`, xOf(m), PT + PH + 15);
   }
 
   // 軸線
@@ -1105,22 +1113,22 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.moveTo(PL, PT); ctx.lineTo(PL, PT+PH); ctx.lineTo(W-PR, PT+PH);
   ctx.stroke();
 
-  // 身長参考帯（青）
+  // 身長参考帯（青・上ゾーン）
   ctx.beginPath();
   ctx.moveTo(xOf(refData[0][0]), yOfH(refData[0][3]));
   for (const d of refData) ctx.lineTo(xOf(d[0]), yOfH(d[3]));
   for (const d of [...refData].reverse()) ctx.lineTo(xOf(d[0]), yOfH(d[4]));
   ctx.closePath();
-  ctx.fillStyle = 'rgba(70,130,220,0.38)';
+  ctx.fillStyle = 'rgba(60,120,220,0.52)';
   ctx.fill();
 
-  // 体重参考帯（緑）
+  // 体重参考帯（緑・下ゾーン）
   ctx.beginPath();
   ctx.moveTo(xOf(refData[0][0]), yOfW(refData[0][1]));
   for (const d of refData) ctx.lineTo(xOf(d[0]), yOfW(d[1]));
   for (const d of [...refData].reverse()) ctx.lineTo(xOf(d[0]), yOfW(d[2]));
   ctx.closePath();
-  ctx.fillStyle = 'rgba(50,150,70,0.38)';
+  ctx.fillStyle = 'rgba(40,140,60,0.52)';
   ctx.fill();
 
   // ユーザー体重
@@ -1133,8 +1141,10 @@ function drawGrowthGraph(wPoints, hPoints) {
     for (const p of wSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfW(p.value));
     ctx.stroke();
     for (const p of wSorted) {
-      ctx.fillStyle = '#81C784';
+      ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(xOf(p.months), yOfW(p.value), 4, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#81C784'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(xOf(p.months), yOfW(p.value), 4, 0, Math.PI*2); ctx.stroke();
     }
   }
 
@@ -1148,18 +1158,20 @@ function drawGrowthGraph(wPoints, hPoints) {
     for (const p of hSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfH(p.value));
     ctx.stroke();
     for (const p of hSorted) {
-      ctx.fillStyle = '#7EC8D4';
+      ctx.fillStyle = '#fff';
       ctx.beginPath(); ctx.arc(xOf(p.months), yOfH(p.value), 4, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#7EC8D4'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(xOf(p.months), yOfH(p.value), 4, 0, Math.PI*2); ctx.stroke();
     }
   }
 
-  // 単位ラベル
+  // 単位・ラベル
   ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(isYearAxis ? '(歳)' : '(か月)', W/2, H - 4);
-  ctx.fillStyle = '#81C784'; ctx.textAlign = 'left';
-  ctx.fillText('(kg)', 2, PT + 12);
+  ctx.fillText(isYearAxis ? '(歳)' : '(か月)', W/2, H - 5);
+  ctx.fillStyle = '#81C784'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('体重(kg)', PL + 6, PT + PH * BOT_START + 14);
   ctx.fillStyle = '#7EC8D4'; ctx.textAlign = 'right';
-  ctx.fillText('(cm)', W - 2, PT + 12);
+  ctx.fillText('身長(cm)', W - PR - 6, PT + 14);
 }
 
 // ===== 初期化 =====
