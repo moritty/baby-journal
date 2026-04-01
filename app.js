@@ -4,7 +4,10 @@
 const CONFIG = {
   babyName: 'Kotone',
   birthDate: new Date(2026, 1, 9), // 2026-02-09 (monthは0始まり)
-  get scriptUrl() { return localStorage.getItem('scriptUrl') || ''; },
+  get scriptUrl() {
+    return localStorage.getItem('scriptUrl') ||
+      'https://script.google.com/macros/s/AKfycbzJUZideDfqkI0-JZ5-5kenYG_oPeTAFKwS2XvaOC9WAjiytZSAaKLwdV_A81c7SfwC/exec';
+  },
 };
 
 // ===== カテゴリ定義 =====
