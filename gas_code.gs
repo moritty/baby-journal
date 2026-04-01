@@ -16,15 +16,26 @@
 const SHEET_NAME = 'Records';
 const HEADERS = ['ID', 'Date', 'Time', 'Category', 'Value', 'Note', 'CreatedAt'];
 
-// ===== GET: データ取得 / 削除 =====
+// ===== GET: 全操作をGETで処理（CORSが安定する） =====
 function doGet(e) {
   try {
     const p = e.parameter || {};
+    const action = p.action || '';
 
-    if (p.action === 'delete' && p.id) {
+    if (action === 'save' && p.data) {
+      const record = JSON.parse(p.data);
+      return handleSave(record);
+    }
+
+    if (action === 'delete' && p.id) {
       return handleDelete(p.id);
     }
 
+    if (action === 'get' && p.date) {
+      return handleGetByDate(p.date);
+    }
+
+    // 後方互換: action なしで date のみの場合も対応
     if (p.date) {
       return handleGetByDate(p.date);
     }
@@ -35,7 +46,7 @@ function doGet(e) {
   }
 }
 
-// ===== POST: データ保存 =====
+// ===== POST: 後方互換で残す =====
 function doPost(e) {
   try {
     const record = JSON.parse(e.postData.contents);
@@ -53,19 +64,43 @@ function handleGetByDate(date) {
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (String(row[1]) === date) {
+    // SheetsがDate型に変換する場合があるので文字列に統一して比較
+    const rowDate = toDateStr(row[1]);
+    if (rowDate === date) {
       records.push({
         id:       String(row[0]),
-        date:     String(row[1]),
-        time:     String(row[2]),
+        date:     rowDate,
+        time:     toTimeStr(row[2]),
         category: String(row[3]),
-        value:    row[4] !== '' ? row[4] : '',
+        value:    row[4] !== '' ? String(row[4]) : '',
         note:     String(row[5] || ''),
       });
     }
   }
 
   return json({ records });
+}
+
+// ===== Date型 → YYYY-MM-DD 文字列変換 =====
+function toDateStr(val) {
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(val);
+}
+
+// ===== 時刻型 → HH:MM 文字列変換 =====
+function toTimeStr(val) {
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, Session.getScriptTimeZone(), 'HH:mm');
+  }
+  // 文字列の場合もゼロ埋めで統一（例: "6:30" → "06:30"）
+  const str = String(val);
+  const parts = str.split(':');
+  if (parts.length >= 2) {
+    return parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+  }
+  return str;
 }
 
 // ===== レコード保存 =====

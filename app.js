@@ -112,12 +112,17 @@ async function syncFetch(dateStr) {
   if (!CONFIG.scriptUrl) return;
   setSyncing(true);
   try {
-    const res = await fetch(`${CONFIG.scriptUrl}?date=${dateStr}`);
+    const res = await fetch(`${CONFIG.scriptUrl}?action=get&date=${dateStr}`);
     const data = await res.json();
-    // Sheetsにデータがある場合のみローカルを上書き（空データで消えるのを防ぐ）
-    if (Array.isArray(data.records) && data.records.length > 0) {
-      state.records[dateStr] = data.records;
+    if (Array.isArray(data.records)) {
+      // マージ: Sheetsにないローカルデータは残す（消えるのを防ぐ）
+      const sheetsIds = new Set(data.records.map(r => r.id));
+      const localOnly = (state.records[dateStr] || []).filter(r => !sheetsIds.has(r.id));
+      state.records[dateStr] = [...data.records, ...localOnly]
+        .sort((a, b) => a.time.localeCompare(b.time));
       saveCache();
+      // ローカルにしかないレコードはSheetsに再送する
+      for (const r of localOnly) syncSave(r);
       renderTimeline();
       renderSummary();
     }
@@ -129,24 +134,13 @@ async function syncFetch(dateStr) {
 }
 
 async function syncSave(record) {
-  if (!CONFIG.scriptUrl) {
-    showToast('💾 ローカルに保存（URL未設定）');
-    return;
-  }
-  setSyncing(true);
+  if (!CONFIG.scriptUrl) return;
   try {
-    // no-cors: Apps ScriptへのPOSTはCORSプリフライトを回避
-    await fetch(CONFIG.scriptUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(record),
-    });
-    showToast('✓ きろくしました');
+    // GETパラメータで送信（POSTより確実にSheetsに届く）
+    const url = `${CONFIG.scriptUrl}?action=save&data=${encodeURIComponent(JSON.stringify(record))}`;
+    await fetch(url);
   } catch(e) {
-    showToast('💾 ローカルに保存');
-  } finally {
-    setSyncing(false);
+    console.warn('save error', e);
   }
 }
 
