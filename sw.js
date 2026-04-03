@@ -1,4 +1,4 @@
-const CACHE_NAME = 'baby-journal-v7';
+const CACHE_NAME = 'baby-journal-v8';
 const ASSETS = [
   './index.html',
   './style.css',

@@ -1036,10 +1036,9 @@ body {
 }
 
 .graph-canvas-wrap {
-  flex: 1;
   background: #141428;
   overflow: hidden;
-  min-height: 200px;
+  flex-shrink: 0;
 }
 
 .graph-canvas-wrap canvas {

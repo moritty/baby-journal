@@ -978,17 +978,18 @@ const graphState = { ageTab: 1 };
 
 function openGraph() {
   document.getElementById('graphModal').classList.remove('hidden');
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     resizeGraphCanvas();
     renderGraph();
-  });
+  }, 50);
 }
 
 function resizeGraphCanvas() {
   const canvas = document.getElementById('growthCanvas');
-  const container = document.getElementById('graphCanvasWrap');
-  canvas.width  = container.clientWidth  || 360;
-  canvas.height = container.clientHeight || Math.round((container.clientWidth || 360) * 1.1);
+  const w = Math.min(window.innerWidth, 430);
+  const h = window.innerHeight - 170; // ヘッダー+タブ+凡例分を引く
+  canvas.width  = w;
+  canvas.height = Math.max(h, 280);
 }
 
 function closeGraph() {
@@ -1000,8 +1001,7 @@ function setGraphAge(age) {
   document.querySelectorAll('.graph-age-tab').forEach(t => {
     t.classList.toggle('active', parseInt(t.dataset.age) === age);
   });
-  resizeGraphCanvas();
-  renderGraph();
+  setTimeout(() => { resizeGraphCanvas(); renderGraph(); }, 10);
 }
 
 function renderGraph() {
