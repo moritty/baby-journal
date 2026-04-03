@@ -1127,9 +1127,7 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.moveTo(PL, PT); ctx.lineTo(PL, PT+PH); ctx.lineTo(W-PR, PT+PH);
   ctx.stroke();
 
-  // 身長参考帯（青・上エリア限定）
-  ctx.save();
-  ctx.beginPath(); ctx.rect(PL, PT, PW, PH * MID); ctx.clip();
+  // 身長参考帯（青・上エリア）
   ctx.beginPath();
   ctx.moveTo(xOf(refData[0][0]), yOfH(refData[0][3]));
   for (const d of refData) ctx.lineTo(xOf(d[0]), yOfH(d[3]));
@@ -1137,11 +1135,8 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.closePath();
   ctx.fillStyle = 'rgba(60,120,220,0.55)';
   ctx.fill();
-  ctx.restore();
 
-  // 体重参考帯（緑・下エリア限定）
-  ctx.save();
-  ctx.beginPath(); ctx.rect(PL, midY, PW, PH * MID); ctx.clip();
+  // 体重参考帯（緑・下エリア）
   ctx.beginPath();
   ctx.moveTo(xOf(refData[0][0]), yOfW(refData[0][1]));
   for (const d of refData) ctx.lineTo(xOf(d[0]), yOfW(d[1]));
@@ -1149,34 +1144,27 @@ function drawGrowthGraph(wPoints, hPoints) {
   ctx.closePath();
   ctx.fillStyle = 'rgba(40,140,60,0.55)';
   ctx.fill();
-  ctx.restore();
 
-  // ユーザー体重
+  // ユーザー体重（折線のみ）
   const wSorted = wPoints.filter(p => p.months >= 0 && p.months <= maxMonths)
     .sort((a,b) => a.months - b.months);
-  if (wSorted.length > 0) {
-    ctx.save();
-    ctx.beginPath(); ctx.rect(PL, midY, PW, PH * MID); ctx.clip();
-    ctx.strokeStyle = '#81C784'; ctx.lineWidth = 2;
+  if (wSorted.length > 1) {
+    ctx.strokeStyle = '#4EFA7E'; ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(xOf(wSorted[0].months), yOfW(wSorted[0].value));
     for (const p of wSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfW(p.value));
     ctx.stroke();
-    ctx.restore();
   }
 
-  // ユーザー身長
+  // ユーザー身長（折線のみ）
   const hSorted = hPoints.filter(p => p.months >= 0 && p.months <= maxMonths)
     .sort((a,b) => a.months - b.months);
-  if (hSorted.length > 0) {
-    ctx.save();
-    ctx.beginPath(); ctx.rect(PL, PT, PW, PH * MID); ctx.clip();
-    ctx.strokeStyle = '#7EC8D4'; ctx.lineWidth = 2;
+  if (hSorted.length > 1) {
+    ctx.strokeStyle = '#60D4FF'; ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(xOf(hSorted[0].months), yOfH(hSorted[0].value));
     for (const p of hSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfH(p.value));
     ctx.stroke();
-    ctx.restore();
   }
 
   // エリアラベル（左上）
