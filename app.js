@@ -1162,12 +1162,6 @@ function drawGrowthGraph(wPoints, hPoints) {
     ctx.moveTo(xOf(wSorted[0].months), yOfW(wSorted[0].value));
     for (const p of wSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfW(p.value));
     ctx.stroke();
-    for (const p of wSorted) {
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(xOf(p.months), yOfW(p.value), 4, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#81C784'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(xOf(p.months), yOfW(p.value), 4, 0, Math.PI*2); ctx.stroke();
-    }
     ctx.restore();
   }
 
@@ -1182,12 +1176,6 @@ function drawGrowthGraph(wPoints, hPoints) {
     ctx.moveTo(xOf(hSorted[0].months), yOfH(hSorted[0].value));
     for (const p of hSorted.slice(1)) ctx.lineTo(xOf(p.months), yOfH(p.value));
     ctx.stroke();
-    for (const p of hSorted) {
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(xOf(p.months), yOfH(p.value), 4, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#7EC8D4'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(xOf(p.months), yOfH(p.value), 4, 0, Math.PI*2); ctx.stroke();
-    }
     ctx.restore();
   }
 
